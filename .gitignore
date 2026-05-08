@@ -1,0 +1,8 @@
+Manifest.toml
+examples/Manifest.toml
+examples/output/
+legacy/
+.DS_Store
+*.ji
+*.cov
+*.mem
