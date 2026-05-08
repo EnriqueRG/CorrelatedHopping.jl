@@ -5,9 +5,27 @@
 Julia tools for simulating and analyzing constrained reaction-diffusion models on
 periodic lattices.
 
-This package is extracted from the research notebooks in this repository. The
-notebooks remain useful as provenance and figure-generation workflows, while
-the package in `src/` is the reusable API.
+This package contains reusable Julia code developped for the simulations in [Physical Review Research 6, L032071 (2024)](https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.6.L032071)
+and a companion manuscript.
+
+## Installation
+
+From Julia, install the package from GitHub with:
+
+```julia
+using Pkg
+Pkg.add(url="https://github.com/EnriqueRG/CorrelatedHopping.jl.git")
+```
+
+For local development from this repository, activate the project and run the
+test suite:
+
+```julia
+using Pkg
+Pkg.activate(".")
+Pkg.instantiate()
+Pkg.test()
+```
 
 ## Quick Start
 
@@ -15,16 +33,22 @@ the package in `src/` is the reusable API.
 using CorrelatedHopping
 using Random
 
+# Parameters
 rng = MersenneTwister(1)
 L = 16
-rho0 = 0.5
-initial_state = Int.(rand(rng, L) .< rho0)
+initial_density = 0.5
+hopping_rate  = 1.0
+reaction_rate = 1.0
 
+# Bernoulli initial state
+initial_state = Int.(rand(rng, L) .< initial_density)
+
+# Simulation
 sys = initialize_system(
     L,
     initial_state,
-    1.0,
-    1.0;
+    hopping_rate,
+    reaction_rate;
     reaction = Reaction(2, 0),
     dynamics = CorrelatedHoppingDynamics(),
 )
@@ -36,9 +60,12 @@ times, particles = simulate!(
 )
 ```
 
+This example uses the Gillespie algorithm and returns the event times `times`
+and the corresponding total particle count `particles`.
+
 For larger production runs, increase `L` and the number of ensemble samples in
-your scripts or notebooks. The figure examples use reduced settings compared
-with the paper workflow, but some still run for tens of seconds.
+your scripts. The figure examples use reduced settings compared with the paper
+workflow, but some still run for tens of seconds.
 
 ## Main Concepts
 
@@ -53,28 +80,11 @@ with the paper workflow, but some still run for tens of seconds.
 
 - `src/`: reusable Julia package code.
 - `test/`: automatic correctness checks.
-- `examples/`: runnable examples ported from selected `PaperPlots.ipynb` cells.
-- `legacy/notebooks/`: research notebooks and figure-generation provenance.
-- `legacy/figures/`: generated PDFs from the notebook workflow.
-- `legacy/data/`: serialized `.jls` data and raw `.bin` outputs.
-
-## Development
-
-From this directory:
-
-```julia
-using Pkg
-Pkg.activate(".")
-Pkg.test()
-```
-
-The notebooks are not part of the automatic test suite because several cells
-are intentionally large research runs.
+- `examples/`: runnable plotting examples with reduced settings.
 
 ## Examples
 
-The plotting examples have their own environment so the package itself does not
-depend on plotting libraries:
+The examples reproduce the figures in the companion manuscript. The plotting examples have their own environment so the package itself does not depend on plotting libraries:
 
 ```julia
 using Pkg
@@ -88,9 +98,3 @@ Then run an example from the repository root:
 ```sh
 julia --project=examples examples/fig2.jl
 ```
-
-- `examples/fig2.jl`: larger PaperPlots density-evolution figure port.
-- `examples/fig4.jl`: PaperPlots final-time histogram with Gumbel fits.
-- `examples/fig5.jl`: PaperPlots finite-size scaling comparison.
-- `examples/fig6.jl`: small-system joint fast/slow-rate final-time panel.
-- `examples/fig7.jl`: PaperPlots diffusive final-time scaling figure.
