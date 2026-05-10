@@ -22,7 +22,12 @@ export
     find_spectral_gap,
     full_gamma_coefficients,
     calculate_coefficient,
-    run_ensemble
+    run_ensemble,
+    initialize_active_sites,
+    search_active_sites,
+    get_sandboxes,
+    sandbox_search,
+    sandbox_search_history
 
 include("gillespie.jl")
 include("spectral.jl")
