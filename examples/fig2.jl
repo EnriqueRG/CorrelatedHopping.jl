@@ -6,115 +6,80 @@ using Random
 
 ###########################################################
 # Fig. 2                                                  #
-# Sample trajectories for the particle density rho(t)     #
-# using different values of λ/Γ and initial density ρ0.   #
+# Active sites for a small system.                        #
 ###########################################################
 
-# Parameters
-rng = MersenneTwister(2)
-L = 2^12
-Γ = 1.0
-cases = [
-    (ρ0 = 0.25, λ = 10.0, label = L"\lambda/\Gamma=10" ),
-    (ρ0 = 0.50, λ = 1.00, label = L"\lambda/\Gamma=1"  ),
-    (ρ0 = 1.00, λ = 0.10, label = L"\lambda/\Gamma=0.1"),
-]
-n_trajectories = 10
+function plot_active_intervals(
+    state_history::AbstractMatrix{<:Integer}, 
+    active_sites_history::AbstractMatrix{Bool}
+)
+    t, L = size(state_history)
 
-# Simulate trajectories and compute mean-field curves
-trajectories = [
-    begin
-        initial_state = Int.(rand(rng, L) .< case.ρ0)
-        sys = initialize_system(
-            L,
-            initial_state,
-            Γ,
-            case.λ;
-            reaction = Reaction(2, 0),
-            dynamics = CorrelatedHoppingDynamics(),
-        )
-        times, particle_counts = simulate!(
-            sys,
-            (sys, _t) -> is_final_binary(sys);
-            rng,
-        )
-        times = Γ .* times .+ 1e-10
-        density = particle_counts ./ L
-        theory_times = times[times .< 27]
-        theory_density = 1 ./ (case.λ .* theory_times ./ Γ .+ case.ρ0^(-1))
+    # The heatmap natively maps matrix rows to the y-axis and columns to the x-axis.
+    h = heatmap(
+        active_sites_history,
+        c = [:white, :lightgray],
+        yflip = true, # Orient time to flow downwards
+        aspect_ratio = :equal,
+        ticks = false,
+        colorbar = false,
+        axis = false,
+        # Scale both width and height based on the lattice size and time steps
+        size = (max(360, Int(L * 26)), max(90, Int(t * 26))),
+        xlims = (-1.0, L + 0.5),
+        ylims = (0.5, t + 0.5),
+    )
 
-        (; case_index, ρ0 = case.ρ0, λ = case.λ, times, density, theory_times, theory_density)
+    # Generate horizontal grid lines for each time step
+    for y in 0.5:1:(t + 0.5)
+        plot!(h, [0.5, L + 0.5], [y, y], color = :black, lw = 0.5, label = "")
     end
-    for _ in 1:n_trajectories
-    for (case_index, case) in enumerate(cases)
-]
+    # Generate vertical grid lines for each spatial site
+    for x in 0.5:1:(L + 0.5)
+        plot!(h, [x, x], [0.5, t + 0.5], color = :black, lw = 0.5, label = "")
+    end
 
-# Set up plot
-plt = plot(
-    xlabel = L"t/\Gamma^{-1}",
-    foreground_color_legend = :transparent,
-    left_margin = 7.5mm,
-    label = nothing,
-    xscale = :log10,
-    xlims = (1e-1, 1e3),
-    ylims = (0.1, 1.0),
-    yticks = 0:0.2:1.0,
-    size = (400, 275),
-)
-annotate!(plt, 0.03, 0.5, text(L"\rho(t)", 11))
+    # Findall on a matrix returns a vector of CartesianIndex(row, col)
+    particle_indices = findall(x -> x != 0, state_history)
+    
+    # Extract spatial coordinates (columns) and temporal coordinates (rows)
+    xs = [idx[2] for idx in particle_indices]
+    ys = [idx[1] for idx in particle_indices]
 
-# Plot simulation and theory results
-for trajectory in trajectories
-    plot!(plt, trajectory.times, trajectory.density; c = trajectory.case_index, lw = 2, alpha = 0.3, label = nothing)
-    plot!(
-        plt,
-        trajectory.theory_times,
-        trajectory.theory_density;
-        c = trajectory.case_index,
-        ls = :dash,
-        lw = 2,
-        alpha = 0.3,
-        label = nothing,
-    )
     scatter!(
-        plt,
-        [last(trajectory.times)],
-        [last(trajectory.density)];
-        c = trajectory.case_index,
-        ms = 3,
-        label = nothing,
+        h,
+        xs,
+        ys,
+        color = :black,
+        markersize = 5,
+        markerstrokewidth = 0,
+        legend = false,
     )
+
+    # Arrow
+    plot!(h, [-0.2, -0.2], [t, 1], arrow = :closed, color = :black, lw = 2, label = "")
+    annotate!(h, -0.7, t / 2, text("Time", 12, :black, :center, rotation = 90))
+
+    return h
 end
 
-# Text annotations
-annotation_y = [0.25, 0.5, 0.8]
-for (i, case) in enumerate(cases)
-    annotate!(
-        plt,
-        0.14,
-        annotation_y[i],
-        text(case.label, 11, color = palette(:default)[i], halign = :left, valign = :bottom),
-    )
-end
 
-# Inset
-lens!(
-    plt,
-    [10, 1000],
-    [0.15, 0.21];
-    inset = (1, bbox(0.6, 0.0, 0.4, 0.3)),
-    alpha = 1.0,
-    lw = 2,
+# Simulate the evolution
+rng = MersenneTwister(3)
+L = 30
+ρ0 = 0.6
+initial_state = Int.(rand(rng, L) .< ρ0)
+sys = CorrelatedHopping.initialize_system(L, initial_state, reaction = InstantaneousReaction(2, 0))
+times, particles_history = CorrelatedHopping.simulate!(
+    sys,
+    (sys, _t) -> is_final_binary(sys);
+    full_history = true,
+    rng,
 )
-plot!(
-    plt[2];
-    xscale = :log10,
-    xlabel = nothing,
-    ylabel = nothing,
-    framestyle = :box,
-    xticks = :auto,
-    yticks = 0.15:0.03:0.21,
-)
+
+# Evaluate active sites and plot
+active_sites_history = sandbox_search_history(particles_history);
+plt = plot_active_intervals(particles_history, active_sites_history)
 
 # Save figure
 output_dir = joinpath(@__DIR__, "output")
