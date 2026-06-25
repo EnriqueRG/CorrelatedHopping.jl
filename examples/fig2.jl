@@ -65,7 +65,7 @@ end
 
 
 # Simulate the evolution
-rng = MersenneTwister(3)
+rng = MersenneTwister(114)
 L = 30
 ρ0 = 0.6
 initial_state = Int.(rand(rng, L) .< ρ0)
