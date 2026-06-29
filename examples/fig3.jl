@@ -91,8 +91,8 @@ end
 lens!(
     plt,
     [10, 1000],
-    [0.15, 0.21];
-    inset = (1, bbox(0.6, 0.0, 0.4, 0.3)),
+    [0.14, 0.20];
+    inset = (1, bbox(0.6, 0.0, 0.4, 0.4)),
     alpha = 1.0,
     lw = 2,
 )
@@ -103,8 +103,18 @@ plot!(
     ylabel = nothing,
     framestyle = :box,
     xticks = :auto,
-    yticks = 0.15:0.03:0.21,
+    yticks = 0.14:0.03:0.2,
 )
+x, xcap, y1, y2, xlabel = 75, 65, 0.155, 0.172, 90
+plot!(plt[2], [x, x], [y1, y2]; c=:black, lw=1.2, label=nothing)
+plot!(plt[2], [xcap, x], [y1, y1]; c=:black, lw=1.2, label=nothing)
+plot!(plt[2], [xcap, x], [y2, y2]; c=:black, lw=1.2, label=nothing)
+annotate!(plt[2], xlabel, (y1+y2)/2.01, text("Gaussian", 8, halign = :left, valign = :center))
+y, ycap, x1, x2, ylabel = 0.15, 0.153, 15, 58, 0.149
+plot!(plt[2], [x1, x2], [y, y]; c=:black, lw=1.2, label=nothing)
+plot!(plt[2], [x1, x1], [y, ycap]; c=:black, lw=1.2, label=nothing)
+plot!(plt[2], [x2, x2], [y, ycap]; c=:black, lw=1.2, label=nothing)
+annotate!(plt[2], sqrt(x1*x2), ylabel, text("Gumbel", 8, halign = :center, valign = :top))
 
 # Save figure
 output_dir = joinpath(@__DIR__, "output")
