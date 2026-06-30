@@ -21,6 +21,17 @@ cases = [
 ]
 n_trajectories = 10
 
+default_blue = palette(:default)[1]
+seafoam = RGB(0.36, 0.75, 0.59)
+julia_green = RGB(0.22, 0.60, 0.15)
+amber = RGB(0.90, 0.62, 0.00)
+lambda_over_gamma_values = [case.λ / Γ for case in cases]
+gradient_colors = cgrad([default_blue, seafoam, julia_green, amber, :red])[range(0.0, 1.0, length = length(cases))]
+case_colors = fill(default_blue, length(cases))
+for (rank, case_index) in enumerate(sortperm(lambda_over_gamma_values))
+    case_colors[case_index] = gradient_colors[rank]
+end
+
 # Simulate trajectories and compute mean-field curves
 trajectories = [
     begin
@@ -65,12 +76,12 @@ annotate!(plt, 0.03, 0.5, text(L"\rho(t)", 11))
 
 # Plot simulation and theory results
 for trajectory in trajectories
-    plot!(plt, trajectory.times, trajectory.density; c = trajectory.case_index, lw = 2, alpha = 0.3, label = nothing)
+    plot!(plt, trajectory.times, trajectory.density; c = case_colors[trajectory.case_index], lw = 2, alpha = 0.3, label = nothing)
     scatter!(
         plt,
         [last(trajectory.times)],
         [last(trajectory.density)];
-        c = trajectory.case_index,
+        c = case_colors[trajectory.case_index],
         ms = 3,
         label = nothing,
     )
@@ -83,7 +94,7 @@ for (i, case) in enumerate(cases)
         plt,
         0.14,
         annotation_y[i],
-        text(case.label, 11, color = palette(:default)[i], halign = :left, valign = :bottom),
+        text(case.label, 11, color = case_colors[i], halign = :left, valign = :bottom),
     )
 end
 
@@ -109,7 +120,7 @@ x, xcap, y1, y2, xlabel = 75, 65, 0.155, 0.172, 90
 plot!(plt[2], [x, x], [y1, y2]; c=:black, lw=1.2, label=nothing)
 plot!(plt[2], [xcap, x], [y1, y1]; c=:black, lw=1.2, label=nothing)
 plot!(plt[2], [xcap, x], [y2, y2]; c=:black, lw=1.2, label=nothing)
-annotate!(plt[2], xlabel, (y1+y2)/2.01, text("Gaussian", 8, halign = :left, valign = :center))
+annotate!(plt[2], xlabel, (y1+y2)/2.03, text("Gaussian", 8, halign = :left, valign = :center))
 y, ycap, x1, x2, ylabel = 0.15, 0.153, 15, 58, 0.149
 plot!(plt[2], [x1, x2], [y, y]; c=:black, lw=1.2, label=nothing)
 plot!(plt[2], [x1, x1], [y, ycap]; c=:black, lw=1.2, label=nothing)
