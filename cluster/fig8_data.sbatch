@@ -1,20 +1,21 @@
 #!/bin/bash
 #SBATCH -J ch_fig8
-#SBATCH -A naissYYYY-X-XX
+#SBATCH -A naiss2026-3-465-cpu
 #SBATCH -p fat
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -c 1
 #SBATCH -t 24:00:00
 #SBATCH --mem=256G
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=enriquerozasgarcia@gmail.com
 #SBATCH -o logs/fig8-%j.out
 #SBATCH -e logs/fig8-%j.err
 
 set -euo pipefail
 
-# Edit the module names after checking `ml avail julia` on Arrhenius.
 ml purge
-ml julia/1.12.1
+ml Julia/1.12.2-bdist
 
 cd "${SLURM_SUBMIT_DIR}"
 mkdir -p logs examples/output

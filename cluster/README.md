@@ -3,9 +3,16 @@
 These Slurm scripts are meant to be submitted from the package root, the
 directory containing `Project.toml` and `examples/`.
 
-Before submitting, edit `#SBATCH -A naissYYYY-X-XX` in each script to your NAISS
-project allocation, and adjust the Julia module line if Arrhenius reports a
-different version:
+The scripts currently use the Arrhenius CPU allocation
+`naiss2026-3-465-cpu`, load `Julia/1.12.2-bdist`, and request mail on job
+completion or failure:
+
+```sh
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=enriquerozasgarcia@gmail.com
+```
+
+If Arrhenius changes the available Julia module, check the current names with:
 
 ```sh
 ml avail julia
