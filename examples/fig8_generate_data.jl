@@ -92,4 +92,4 @@ function generate_fig8_data(; profile::AbstractString = "local", path::String = 
     return path
 end
 
-generate_fig8_data()
+generate_fig8_data(profile = get(ENV, "FIG8_PROFILE", "local"))
