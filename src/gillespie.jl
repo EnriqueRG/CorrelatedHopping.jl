@@ -8,6 +8,8 @@ abstract type AbstractReactionModel end
 Finite-rate reaction `nA -> mA`.
 """
 struct Reaction{N,M} <: AbstractReactionModel end
+
+# Convenience constructor that stores `n` and `m` as type parameters.
 Reaction(n::Int, m::Int) = Reaction{n,m}()
 
 """
@@ -16,8 +18,15 @@ Reaction(n::Int, m::Int) = Reaction{n,m}()
 Infinite-rate reaction `nA -> mA`, enforced immediately after a dynamics event.
 """
 struct InstantaneousReaction{N,M} <: AbstractReactionModel end
+
+# Convenience constructor that stores `n` and `m` as type parameters.
 InstantaneousReaction(n::Int, m::Int) = InstantaneousReaction{n,m}()
 
+"""
+    get_reaction_rate(reaction, rate, occ)
+
+Return the local reaction propensity for one site with occupation `occ`.
+"""
 @inline function get_reaction_rate(::Reaction{N,M}, rate::Float64, occ::Int) where {N,M}
     occ < N && return 0.0
     combinations = 1.0
@@ -27,16 +36,29 @@ InstantaneousReaction(n::Int, m::Int) = InstantaneousReaction{n,m}()
     return rate * combinations / factorial(N)
 end
 
+# Instantaneous reactions are enforced after motion, not sampled as events.
 @inline get_reaction_rate(::InstantaneousReaction, ::Float64, ::Int) = 0.0
 
+"""
+    execute_reaction!(reaction, occupations, i)
+
+Apply one finite-rate reaction event at site `i` and return the particle change.
+"""
 @inline function execute_reaction!(::Reaction{N,M}, occupations::Vector{Int}, i::Int) where {N,M}
     change = M - N
     occupations[i] += change
     return change
 end
 
+"""
+    enforce_instantaneous!(reaction, occupations, i)
+
+Apply instantaneous reactions at site `i` after a dynamics event.
+"""
+# Finite-rate reactions have nothing to enforce immediately after hopping.
 @inline enforce_instantaneous!(::Reaction, occupations, i) = 0
 
+# Collapse an over-occupied site according to the instantaneous reaction rule.
 @inline function enforce_instantaneous!(
     ::InstantaneousReaction{N,M},
     occupations,
@@ -75,14 +97,27 @@ Independent nearest-neighbor diffusion on a periodic 1D lattice.
 """
 struct StandardDiffusion <: AbstractDynamicsModel end
 
+# Periodic one-dimensional index helpers.
 @inline left(i, L) = i == 1 ? L : i - 1
 @inline right(i, L) = i == L ? 1 : i + 1
 @inline wrap(i, L) = mod1(i, L)
 
+"""
+    get_dynamics_rate(dynamics, sys, i)
+
+Return the total hopping propensity associated with anchor site `i`.
+"""
+# Nearest-neighbor diffusion can hop left or right from the same site.
 @inline function get_dynamics_rate(::StandardDiffusion, sys, i)
     return 2.0 * sys.hop_rate * sys.occupations[i]
 end
 
+"""
+    execute_dynamics!(dynamics, sys, site_idx, target)
+
+Sample and apply one dynamics event anchored at `site_idx`.
+"""
+# Use `target` to choose left versus right diffusion from `site_idx`.
 @inline function execute_dynamics!(::StandardDiffusion, sys, site_idx, target)
     rate_left = sys.hop_rate * sys.occupations[site_idx]
     sys.occupations[site_idx] -= 1
@@ -91,12 +126,19 @@ end
     return enforce_instantaneous!(sys.reaction, sys.occupations, target_idx)
 end
 
+"""
+    update_neighborhood!(dynamics, sys, site_idx)
+
+Refresh local rates affected by an event at `site_idx`.
+"""
+# Diffusion changes rates only near the departure and arrival sites.
 @inline function update_neighborhood!(::StandardDiffusion, sys, site_idx)
     for k in (site_idx - 1):(site_idx + 1)
         update_local_rates!(sys, k)
     end
 end
 
+# Correlated hopping sums outward and inward pair-hop propensities.
 @inline function get_dynamics_rate(::CorrelatedHoppingDynamics, sys, i)
     idx_p1 = right(i, sys.L)
     idx_p2 = right(idx_p1, sys.L)
@@ -107,6 +149,7 @@ end
     return r_exp + r_con
 end
 
+# Use `target` to choose between the two correlated-hop directions.
 @inline function execute_dynamics!(::CorrelatedHoppingDynamics, sys, site_idx, target)
     idx_p1 = right(site_idx, sys.L)
     idx_p2 = right(idx_p1, sys.L)
@@ -132,6 +175,7 @@ end
     return change
 end
 
+# A four-site hop can affect rates up to three anchors away.
 @inline function update_neighborhood!(::CorrelatedHoppingDynamics, sys, site_idx)
     for k in (site_idx - 3):(site_idx + 3)
         update_local_rates!(sys, k)
@@ -162,16 +206,27 @@ struct DirectLatticeSystem{
     tree::Vector{Float64}
 end
 
+"""
+    _dynamics_from_symbol(dynamics)
+
+Convert a user-facing dynamics symbol into its model object.
+"""
 function _dynamics_from_symbol(dynamics::Symbol)
     dynamics == :pairwise && return CorrelatedHoppingDynamics()
     dynamics == :diffusion && return StandardDiffusion()
     error("Unknown dynamics type: $dynamics. Use :pairwise or :diffusion.")
 end
 
+"""
+    _validate_dynamics_size(dynamics, L)
+
+Check the minimum lattice size required by a dynamics model.
+"""
 function _validate_dynamics_size(::CorrelatedHoppingDynamics, L::Int)
     L >= 4 || throw(ArgumentError("Pairwise dynamics require L >= 4."))
 end
 
+# Standard diffusion needs at least two sites on a periodic chain.
 function _validate_dynamics_size(::StandardDiffusion, L::Int)
     L >= 2 || throw(ArgumentError("Standard diffusion requires L >= 2."))
 end
@@ -360,6 +415,7 @@ function is_final_binary(sys::DirectLatticeSystem)
     return is_final_binary(sys.occupations)
 end
 
+# Raw-vector overload used by simulations, spectral lumping, and tests.
 function is_final_binary(state::AbstractVector{<:Integer})
     L = length(state)
     L > 7 || throw(ArgumentError("Exact binary final-state patterns assume L > 7."))

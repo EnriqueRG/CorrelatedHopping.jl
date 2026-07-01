@@ -88,3 +88,40 @@ end
     @test_throws ArgumentError run_ensemble(8, 0, 0.0, 1.0, 1.0)
     @test_throws ArgumentError run_ensemble(8, 1, 1.5, 1.0, 1.0)
 end
+
+@testset "krylov sectors" begin
+    L, N = 6, 3
+    counts = symmetry_sector_counts(L, N)
+    @test sum(values(counts)) == binomial(big(N + L - 1), L - 1)
+
+    symmetry_sector, symmetry_sector_size, number_of_symmetry_sectors =
+        largest_symmetry_sector(L, N)
+    states = generate_symmetry_sector_states(
+        L,
+        N,
+        symmetry_sector[1],
+        symmetry_sector[2],
+        symmetry_sector_size;
+        verbose = false,
+    )
+    @test length(states) == symmetry_sector_size
+
+    krylov_sector_result = analyze_krylov_sectors!(copy(states), L)
+    @test krylov_sector_result.certified
+    @test krylov_sector_result.largest <= symmetry_sector_size
+    @test krylov_sector_result.largest >= krylov_sector_result.remaining
+
+    result = largest_krylov_sector(
+        L,
+        N;
+        target_symmetry_sector = symmetry_sector,
+        symmetry_sector_size,
+        number_of_symmetry_sectors,
+        verbose = false,
+    )
+    @test result.certified
+    @test result.largest == krylov_sector_result.largest
+    @test result.ratio == krylov_sector_result.largest / symmetry_sector_size
+
+    @test_throws ArgumentError symmetry_sector_counts(5, N)
+end

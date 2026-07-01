@@ -2,6 +2,7 @@ module CorrelatedHopping
 
 using Arpack
 using LinearAlgebra
+using Printf
 using Random
 using SparseArrays
 using Statistics
@@ -27,10 +28,16 @@ export
     search_active_sites,
     get_sandboxes,
     sandbox_search,
-    sandbox_search_history
+    sandbox_search_history,
+    symmetry_sector_counts,
+    largest_symmetry_sector,
+    generate_symmetry_sector_states,
+    analyze_krylov_sectors!,
+    largest_krylov_sector
 
 include("gillespie.jl")
 include("spectral.jl")
 include("fragments.jl")
+include("krylov.jl")
 
 end

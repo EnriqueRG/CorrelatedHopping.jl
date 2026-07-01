@@ -11,10 +11,10 @@ using Statistics
 
 function fig6_parameters(;
     rng_seed = 6,
-    L = 2^9,
+    L = 1000,
     gamma = 1.0,
-    ensemble_size = 10,
-    rho0_values = sort(unique([collect(LinRange(0, 1, 20)); 0.5])),
+    ensemble_size = 10000,
+    rho0_values = LinRange(0, 1, 19),
     lambda_over_gamma_powers = collect(-3:3),
     n_display_ratios = 4,
 )

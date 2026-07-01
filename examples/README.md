@@ -57,3 +57,14 @@ Generated PDFs are written to `examples/output/`.
   julia --threads auto --project=examples examples/fig7_generate_data.jl
   julia --project=examples examples/fig7_plot.jl
   ```
+- `fig8_generate_data.jl` and `fig8_plot.jl`: Krylov-sector connectivity
+  diagnostic near half filling. The data generation step is memory-heavy
+  because it materializes symmetry sectors as `Set{UInt128}` objects. The
+  generator appends each completed row immediately, so interrupted runs can be
+  resumed. Prefer a large-memory node for extending the task list beyond the
+  default `L <= 26` data:
+
+  ```sh
+  julia --project=examples examples/fig8_generate_data.jl
+  julia --project=examples examples/fig8_plot.jl
+  ```

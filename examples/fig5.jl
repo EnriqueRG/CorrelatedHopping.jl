@@ -90,11 +90,11 @@ end
 
 # Parameters
 rng = MersenneTwister(5)
-ρ0_values = [0.25, 0.5, 0.75]
+ρ0_values = [0.25, 0.75]
 λ = 1.0
 Γ = 1.0
 ℓ = 12
-ensemble_size = 10
+ensemble_size = 1000
 L_values = ℓ * round.(Int, 2 .^ range(0, 10, 10))
 n_replicas = 2 .^ range(3, 10, 100)
 

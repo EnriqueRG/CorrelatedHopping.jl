@@ -1,3 +1,8 @@
+"""
+    _representative(state, lump_final)
+
+Return the canonical translation/reflection representative of a state.
+"""
 function _representative(state::Vector{Int}, lump_final::Bool)
     L = length(state)
     if lump_final && is_final_binary(state)
@@ -40,6 +45,7 @@ function build_generator(
     multiplicities = Int[]
     rep_to_idx = Dict{Vector{Int},Int}()
 
+    # Enumerate occupation states up to `max_total` and collect symmetry classes.
     function generate_states!(current_state, site, current_sum)
         if site > L
             rep = _representative(current_state, lump_final)
@@ -66,6 +72,7 @@ function build_generator(
     col_idx = Int[]
     values = Float64[]
 
+    # Add one off-diagonal generator entry and the matching diagonal loss term.
     function add_transition!(source_idx, new_state, rate)
         new_rep = _representative(new_state, lump_final)
         dest_idx = get(rep_to_idx, new_rep, 0)

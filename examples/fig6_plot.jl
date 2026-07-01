@@ -53,7 +53,7 @@ function plot_fig6(data)
         bottom_margin = 4mm,
         right_margin = 15mm,
         xlims = (0, 1.02),
-        ylims = (0, 53),
+        ylims = (0, 43),
         legend = (1.17, 0.66),
         foreground_color_legend = :transparent,
         size = (400, 275),
@@ -90,7 +90,7 @@ function plot_fig6(data)
         ylims = (0, 0.10),
         yticks = 0:0.05:0.1,
         xlims = (0, 1),
-        xticks = 0:0.5:1.0,
+        xticks = 0.5:0.5:1.0,
         framestyle = :box,
         guidefontsize = 7,
         tickfontsize = 6,
@@ -98,8 +98,8 @@ function plot_fig6(data)
         xtickfontvalign = :bottom,
         ytickfonthalign = :left,
     )
-    annotate!(plt1, 0.37, 12.5, text(L"c_1", 9))
-    annotate!(plt1, 0.64, 3, text(L"\rho_0", 9))
+    annotate!(plt1, 0.36, 10, text(L"c_1", 9))
+    annotate!(plt1, 0.64, 2, text(L"\rho_0", 9))
 
     # Global legend
     labels = [L"\lambda/\Gamma = 10^{%$p}" for p in lambda_over_gamma_powers]
@@ -115,7 +115,7 @@ function plot_fig6(data)
         left_margin = 23.5mm,
         bottom_margin = 4mm,
         xlims = (0, 1.02),
-        ylims = (0, 53),
+        ylims = (0, 43),
         legend = (0.6, 0.27),
         foreground_color_legend = :transparent,
         size = (400, 275),
