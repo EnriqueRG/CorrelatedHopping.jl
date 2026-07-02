@@ -1,0 +1,19 @@
+series,L,N,rho,ratio,note
+below half,16,7,0.4375,0.29454545454545455,symmetry_sector=(P=0; A=-1); symmetry_sector_states=4950; number_of_symmetry_sectors=64; krylov_sectors_seen=9; remaining=1440; exhausted=false
+below half,18,8,0.44444444444444442,0.25164370982552803,symmetry_sector=(P=0; A=0); symmetry_sector_states=27225; number_of_symmetry_sectors=81; krylov_sectors_seen=9; remaining=6806; exhausted=false
+below half,20,9,0.45000000000000001,0.21629419531517433,symmetry_sector=(P=0; A=1); symmetry_sector_states=143143; number_of_symmetry_sectors=100; krylov_sectors_seen=16; remaining=28871; exhausted=false
+below half,22,10,0.45454545454545453,0.19047497069475092,symmetry_sector=(P=1; A=0); symmetry_sector_states=819819; number_of_symmetry_sectors=121; krylov_sectors_seen=25; remaining=145786; exhausted=false
+below half,24,11,0.45833333333333331,0.16883195585926677,symmetry_sector=(P=0; A=-1); symmetry_sector_states=4504864; number_of_symmetry_sectors=144; krylov_sectors_seen=57; remaining=694244; exhausted=false
+below half,26,12,0.46153846153846156,0.1520021281514114,symmetry_sector=(P=0; A=0); symmetry_sector_states=26509392; number_of_symmetry_sectors=169; krylov_sectors_seen=76; remaining=4022935; exhausted=false
+half filling,16,8,0.5,0.99001908116835458,symmetry_sector=(P=4; A=0); symmetry_sector_states=13626; number_of_symmetry_sectors=72; krylov_sectors_seen=1; remaining=136; exhausted=false
+half filling,18,9,0.5,0.90959949141767327,symmetry_sector=(P=0; A=1); symmetry_sector_states=70785; number_of_symmetry_sectors=90; krylov_sectors_seen=1; remaining=6399; exhausted=false
+half filling,20,10,0.5,0.98762481225143584,symmetry_sector=(P=5; A=0); symmetry_sector_states=400802; number_of_symmetry_sectors=110; krylov_sectors_seen=1; remaining=4960; exhausted=false
+half filling,22,11,0.5,0.85115525500140887,symmetry_sector=(P=0; A=-1); symmetry_sector_states=2186184; number_of_symmetry_sectors=132; krylov_sectors_seen=1; remaining=325402; exhausted=false
+half filling,24,12,0.5,0.98555804344385722,symmetry_sector=(P=6; A=0); symmetry_sector_states=12764060; number_of_symmetry_sectors=156; krylov_sectors_seen=1; remaining=184338; exhausted=false
+above half,16,9,0.5625,0.99338842975206609,symmetry_sector=(P=0; A=1); symmetry_sector_states=32670; number_of_symmetry_sectors=80; krylov_sectors_seen=1; remaining=216; exhausted=false
+above half,18,10,0.55555555555555558,0.99378942735586095,symmetry_sector=(P=1; A=0); symmetry_sector_states=184041; number_of_symmetry_sectors=99; krylov_sectors_seen=1; remaining=1143; exhausted=false
+above half,20,11,0.55000000000000004,0.99297405890812485,symmetry_sector=(P=0; A=-1); symmetry_sector_states=1002001; number_of_symmetry_sectors=120; krylov_sectors_seen=1; remaining=7040; exhausted=false
+above half,22,12,0.54545454545454541,0.99315176581660103,symmetry_sector=(P=0; A=0); symmetry_sector_states=5829824; number_of_symmetry_sectors=143; krylov_sectors_seen=1; remaining=39924; exhausted=false
+half filling,26,13,0.5,0.86789584254754537,symmetry_sector=(P=0; A=1); symmetry_sector_states=71954064; number_of_symmetry_sectors=182; krylov_sectors_seen=1; remaining=9505431; exhausted=false
+above half,24,13,0.54166666666666663,0.99241641487782029,symmetry_sector=(P=0; A=1); symmetry_sector_states=32821152; number_of_symmetry_sectors=168; krylov_sectors_seen=1; remaining=248902; exhausted=false
+above half,26,14,0.53846153846153844,0.99248151168398657,symmetry_sector=(P=1; A=0); symmetry_sector_states=195303888; number_of_symmetry_sectors=195; krylov_sectors_seen=1; remaining=1468390; exhausted=false

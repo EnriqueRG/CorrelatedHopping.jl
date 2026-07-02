@@ -310,7 +310,14 @@ end
 # Simulation
 
 """
-    simulate!(sys, should_stop; full_history=false, stop_on_reaction_only=true, rng=Random.default_rng())
+    simulate!(
+        sys,
+        should_stop;
+        full_history = false,
+        stop_on_reaction_only = true,
+        rng = Random.default_rng(),
+        event_callback = nothing,
+    )
 
 Run a Gillespie simulation in place until `should_stop(sys, t)` is true or no
 events remain. Returns `(times, history)`. By default, `history` is the total
@@ -320,6 +327,11 @@ it is a matrix of site occupations after every event.
 When `stop_on_reaction_only=true`, the stopping rule is checked initially and
 after particle-changing events. Set it to `false` for stopping rules that depend
 on diffusion-only moves or elapsed time.
+
+If `event_callback` is provided, it is called after every sampled event has been
+applied and local rates have been refreshed:
+`event_callback(sys, event_kind, site_idx, t, particle_change)`. `event_kind` is
+`:reaction` for a finite reaction event and `:dynamics` for a hopping event.
 """
 function simulate!(
     sys::DirectLatticeSystem,
@@ -327,6 +339,7 @@ function simulate!(
     full_history::Bool = false,
     stop_on_reaction_only::Bool = true,
     rng::AbstractRNG = Random.default_rng(),
+    event_callback::Union{Nothing,Function} = nothing,
 )
     t = 0.0
     times = Float64[0.0]
@@ -363,15 +376,20 @@ function simulate!(
         )
         local_target = rand(rng) * sys.site_rates[site_idx]
         particle_change = 0
+        event_kind = :reaction
 
         if local_target < r_react
             particle_change += execute_reaction!(sys.reaction, sys.occupations, site_idx)
         else
+            event_kind = :dynamics
             shifted_target = local_target - r_react
             particle_change += execute_dynamics!(sys.dynamics, sys, site_idx, shifted_target)
         end
 
         update_neighborhood!(sys.dynamics, sys, site_idx)
+        if event_callback !== nothing
+            event_callback(sys, event_kind, site_idx, t, particle_change)
+        end
 
         if full_history
             push!(times, t)

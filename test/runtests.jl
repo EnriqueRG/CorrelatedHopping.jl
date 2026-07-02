@@ -64,6 +64,28 @@ end
     @test issorted(times)
     @test is_final_binary(sys)
     @test last(particles) == sum(sys.occupations)
+
+    diffusion_sys = initialize_system(
+        4,
+        [1, 0, 0, 0],
+        1.0,
+        1.0;
+        reaction = Reaction(2, 0),
+        dynamics = StandardDiffusion(),
+    )
+    event_kinds = Symbol[]
+    event_count = Ref(0)
+    simulate!(
+        diffusion_sys,
+        (_sys, _t) -> event_count[] >= 3;
+        stop_on_reaction_only = false,
+        rng = MersenneTwister(3),
+        event_callback = (_sys, kind, _site, _time, _change) -> begin
+            push!(event_kinds, kind)
+            event_count[] += 1
+        end,
+    )
+    @test event_kinds == [:dynamics, :dynamics, :dynamics]
 end
 
 @testset "generator" begin
@@ -87,6 +109,78 @@ end
     @test all(results .>= 0)
     @test_throws ArgumentError run_ensemble(8, 0, 0.0, 1.0, 1.0)
     @test_throws ArgumentError run_ensemble(8, 1, 1.5, 1.0, 1.0)
+end
+
+@testset "active sites API" begin
+    state = [1, 1, 0, 0, 0, 0, 0, 0]
+    state_activity = active_sites(state; max_states = 1000)
+    sandbox_state_activity = active_sites(state; algorithm = :sandbox, max_states = 1000)
+    history = reshape(state, 1, length(state))
+    history_activity = active_sites(history; max_states = 1000)
+
+    @test state_activity isa Vector{Bool}
+    @test history_activity isa Matrix{Bool}
+    @test size(history_activity) == size(history)
+    @test sandbox_state_activity == state_activity
+    @test history_activity == reshape(state_activity, 1, length(state_activity))
+    @test active_sites(state; reaction = Reaction(2, 0), max_states = 1000) isa Vector{Bool}
+    @test_throws ArgumentError active_sites(state; algorithm = :unknown)
+
+    non_final_state = [1, 1, 1, 0, 0, 0, 0, 0]
+    montecarlo_state_activity = active_sites(
+        non_final_state;
+        algorithm = :montecarlo,
+        reaction = InstantaneousReaction(2, 0),
+        n_sims = 4,
+        max_steps = 8,
+        rng = MersenneTwister(3),
+    )
+    montecarlo_history_activity = active_sites(
+        history;
+        algorithm = :montecarlo,
+        reaction = InstantaneousReaction(2, 0),
+        n_sims = 2,
+        max_steps = 4,
+        rng = MersenneTwister(4),
+    )
+
+    @test montecarlo_state_activity isa Vector{Bool}
+    @test montecarlo_history_activity isa Matrix{Bool}
+    @test size(montecarlo_history_activity) == size(history)
+    @test any(montecarlo_state_activity)
+    @test !any(active_sites(
+        zeros(Int, length(state));
+        algorithm = :montecarlo,
+        n_sims = 1,
+        rng = MersenneTwister(5),
+    ))
+    @test !any(active_sites(
+        [1, 0, 0, 0, 0, 1, 0, 0];
+        algorithm = :montecarlo,
+        n_sims = 1,
+        final_time_horizon = nothing,
+        rng = MersenneTwister(6),
+    ))
+    final_active_state = [1, 1, 0, 0, 0, 0, 0, 0]
+    @test is_final_binary(final_active_state)
+    @test !any(active_sites(
+        final_active_state;
+        algorithm = :montecarlo,
+        n_sims = 1,
+        max_steps = 1,
+        final_time_horizon = nothing,
+        rng = MersenneTwister(7),
+    ))
+    @test any(active_sites(
+        final_active_state;
+        algorithm = :montecarlo,
+        n_sims = 1,
+        max_steps = 1,
+        rng = MersenneTwister(7),
+    ))
+    @test_throws ArgumentError active_sites(state; algorithm = :montecarlo, n_sims = 0)
+    @test_throws ArgumentError active_sites(state; algorithm = :montecarlo, max_steps = 0)
+    @test_throws ArgumentError active_sites(state; algorithm = :montecarlo, final_time_horizon = -1.0)
 end
 
 @testset "krylov sectors" begin

@@ -53,7 +53,7 @@ function plot_fig6(data)
         bottom_margin = 4mm,
         right_margin = 15mm,
         xlims = (0, 1.02),
-        ylims = (0, 43),
+        ylims = (0, 53),
         legend = (1.17, 0.66),
         foreground_color_legend = :transparent,
         size = (400, 275),
@@ -98,7 +98,7 @@ function plot_fig6(data)
         xtickfontvalign = :bottom,
         ytickfonthalign = :left,
     )
-    annotate!(plt1, 0.36, 10, text(L"c_1", 9))
+    annotate!(plt1, 0.36, 12.5, text(L"c_1", 9))
     annotate!(plt1, 0.64, 2, text(L"\rho_0", 9))
 
     # Global legend
@@ -115,7 +115,7 @@ function plot_fig6(data)
         left_margin = 23.5mm,
         bottom_margin = 4mm,
         xlims = (0, 1.02),
-        ylims = (0, 43),
+        ylims = (0, 53),
         legend = (0.6, 0.27),
         foreground_color_legend = :transparent,
         size = (400, 275),
@@ -126,7 +126,7 @@ function plot_fig6(data)
     # Plot simulation and mean-field curves
     rho0_mf = LinRange(0.15, 1.0, 200)
     rho_ref = 1 / 2
-    for i in slow_reaction_indices
+    for i in reverse(slow_reaction_indices)
         muT_lambda_units = simulation.lambda_values[i] .* simulation.muT[i, :]
         sigmaT_lambda_units = simulation.lambda_values[i] .* simulation.sigmaT[i, :]
         reference_muT = interpolate_at_density(rho0_values, muT_lambda_units, rho_ref)
