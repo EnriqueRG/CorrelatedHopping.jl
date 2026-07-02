@@ -34,18 +34,18 @@ function plot_fig4(data)
         RGB(0.04, 0.30, 0.06),
     ]
     for (i, result) in enumerate(data.results)
-        survival_times = result.survival_times
+        final_times = result.final_times
 
-        theta_est = std(survival_times) * sqrt(6) / pi
-        mu_est = mean(survival_times) - theta_est * 0.5772156649015329
+        theta_est = std(final_times) * sqrt(6) / pi
+        mu_est = mean(final_times) - theta_est * 0.5772156649015329
         fitted_gumbel = Gumbel(mu_est, theta_est)
-        x_vals = range(0.001, maximum(survival_times); length = 500)
+        x_vals = range(0.001, maximum(final_times); length = 500)
         gumbel_vals = pdf.(fitted_gumbel, x_vals)
 
         clr = green_colors[i]
         stephist!(
             plt,
-            survival_times;
+            final_times;
             bins = 100,
             normalize = :pdf,
             lw = 2,

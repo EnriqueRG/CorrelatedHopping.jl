@@ -70,7 +70,7 @@ function generate_fig8_data(; profile::AbstractString = "local", path::String = 
                 continue
             end
 
-            result = largest_krylov_sector(task.L, task.N)
+            result = CorrelatedHopping.largest_krylov_sector(task.L, task.N)
             note = "symmetry_sector=(P=$(result.P); A=$(result.A)); symmetry_sector_states=$(result.symmetry_sector_size); number_of_symmetry_sectors=$(result.number_of_symmetry_sectors); krylov_sectors_seen=$(result.krylov_sectors_seen); remaining=$(result.remaining); exhausted=$(result.exhausted)"
 
             @printf(

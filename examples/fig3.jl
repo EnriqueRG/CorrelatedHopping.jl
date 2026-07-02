@@ -7,17 +7,17 @@ using Random
 ###########################################################
 # Fig. 3                                                  #
 # Sample trajectories for the particle density rho(t)     #
-# using different values of λ/Γ and initial density ρ0.   #
+# using different values of reaction_rate/hop_rate.       #
 ###########################################################
 
 # Parameters
 rng = MersenneTwister(2)
 L = 2^12
-Γ = 1.0
+hop_rate = 1.0
 cases = [
-    (ρ0 = 0.25, λ = 10.0, label = L"\lambda/\Gamma=10" ),
-    (ρ0 = 0.50, λ = 1.00, label = L"\lambda/\Gamma=1"  ),
-    (ρ0 = 1.00, λ = 0.10, label = L"\lambda/\Gamma=0.1"),
+    (rho0 = 0.25, reaction_rate = 10.0, label = L"\lambda/\Gamma=10" ),
+    (rho0 = 0.50, reaction_rate = 1.00, label = L"\lambda/\Gamma=1"  ),
+    (rho0 = 1.00, reaction_rate = 0.10, label = L"\lambda/\Gamma=0.1"),
 ]
 n_trajectories = 10
 
@@ -25,36 +25,38 @@ default_blue = palette(:default)[1]
 seafoam = RGB(0.36, 0.75, 0.59)
 julia_green = RGB(0.22, 0.60, 0.15)
 amber = RGB(0.90, 0.62, 0.00)
-lambda_over_gamma_values = [case.λ / Γ for case in cases]
+reaction_over_hop_values = [case.reaction_rate / hop_rate for case in cases]
 gradient_colors = cgrad([default_blue, seafoam, julia_green, amber, :red])[range(0.0, 1.0, length = length(cases))]
 case_colors = fill(default_blue, length(cases))
-for (rank, case_index) in enumerate(sortperm(lambda_over_gamma_values))
+for (rank, case_index) in enumerate(sortperm(reaction_over_hop_values))
     case_colors[case_index] = gradient_colors[rank]
 end
 
 # Simulate trajectories and compute mean-field curves
 trajectories = [
     begin
-        initial_state = Int.(rand(rng, L) .< case.ρ0)
+        initial_state = Int.(rand(rng, L) .< case.rho0)
         sys = initialize_system(
             L,
             initial_state,
-            Γ,
-            case.λ;
+            hop_rate,
+            case.reaction_rate;
             reaction = Reaction(2, 0),
             dynamics = CorrelatedHoppingDynamics(),
         )
-        times, particle_counts = simulate!(
+        simulation = simulate!(
             sys,
             (sys, _t) -> is_final_binary(sys);
             rng,
         )
-        times = Γ .* times .+ 1e-10
+        times = simulation.recorded_times
+        particle_counts = simulation.history
+        times = hop_rate .* times .+ 1e-10
         density = particle_counts ./ L
         theory_times = times[times .< 27]
-        mean_field_density = 1 ./ (case.λ .* theory_times ./ Γ .+ case.ρ0^(-1))
+        mean_field_density = 1 ./ (case.reaction_rate .* theory_times ./ hop_rate .+ case.rho0^(-1))
 
-        (; case_index, ρ0 = case.ρ0, λ = case.λ, times, density, theory_times, mean_field_density)
+        (; case_index, rho0 = case.rho0, reaction_rate = case.reaction_rate, times, density, theory_times, mean_field_density)
     end
     for _ in 1:n_trajectories
     for (case_index, case) in enumerate(cases)

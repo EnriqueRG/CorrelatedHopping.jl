@@ -128,8 +128,8 @@ end
 # Simulate the evolution
 rng = MersenneTwister(540)
 L = 30
-ρ0 = 0.6
-initial_state = Int.(rand(rng, L) .< ρ0)
+rho0 = 0.6
+initial_state = Int.(rand(rng, L) .< rho0)
 hop_rate = 1.0
 reaction_rate = 1.0
 reaction_model = Reaction(2, 0)
@@ -140,22 +140,23 @@ sys = CorrelatedHopping.initialize_system(
     reaction_rate;
     reaction = reaction_model,
 )
-times, particles_history = CorrelatedHopping.simulate!(
+simulation = CorrelatedHopping.simulate!(
     sys,
     (sys, _t) -> is_final_binary(sys);
-    full_history = true,
+    record = :all,
     rng,
 )
+state_history = simulation.history
 
 # Evaluate active sites and plot
 active_sites_history = active_sites(
-    particles_history;
+    state_history;
     algorithm = :montecarlo,
     reaction = reaction_model,
     hop_rate = hop_rate,
     reaction_rate = reaction_rate,
 )
-plt = plot_active_intervals(particles_history, active_sites_history)
+plt = plot_active_intervals(state_history, active_sites_history)
 
 # Save figure
 output_dir = joinpath(@__DIR__, "output")

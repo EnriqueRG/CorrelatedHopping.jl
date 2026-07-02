@@ -53,15 +53,19 @@ sys = initialize_system(
     dynamics = CorrelatedHoppingDynamics(),
 )
 
-times, particles = simulate!(
+simulation = simulate!(
     sys,
     (s, _t) -> is_final_binary(s);
     rng,
 )
+
+times = simulation.recorded_times
+particles = simulation.history
 ```
 
-This example uses the Gillespie algorithm and returns the event times `times`
-and the corresponding total particle count `particles`.
+This example uses the Gillespie algorithm and records `times` and the
+corresponding total particle count `particles`. The absorption time is available
+as `simulation.final_time`.
 
 For larger production runs, increase `L` and the number of ensemble samples in
 your scripts. The figure examples use reduced settings compared with the paper
@@ -69,12 +73,14 @@ workflow, but some still run for tens of seconds.
 
 ## Main Concepts
 
-- `Reaction(n, m)` defines a finite-rate reaction `nA -> mA`.
-- `InstantaneousReaction(n, m)` enforces `nA -> mA` immediately after dynamics.
+- `Reaction(n, m)` defines a finite-rate reaction `nA -> mA` with `n >= 1`
+  and `m >= 0`; finite reactions may remove or create particles.
+- `InstantaneousReaction(n, m)` enforces `nA -> mA` immediately after dynamics
+  and requires `n >= 1`, `m >= 0`, and `m < n`.
 - `CorrelatedHoppingDynamics()` implements the constrained move `0110 <-> 1001`.
 - `StandardDiffusion()` implements independent nearest-neighbor diffusion.
-- `build_generator` constructs a symmetry-reduced finite-state Markov generator
-  for small systems.
+- `build_pair_annihilation_generator` constructs a symmetry-reduced finite-state
+  Markov generator for the small-system `2A -> 0` correlated-hopping model.
 
 ## Repository Layout
 

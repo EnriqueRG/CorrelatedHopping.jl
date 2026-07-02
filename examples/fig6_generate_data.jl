@@ -6,55 +6,55 @@ using Statistics
 
 ###########################################################
 # Fig. 6 data generation                                  #
-# Mean survival times across density and rate ratios.     #
+# Mean final times across density and rate ratios.        #
 ###########################################################
 
 function fig6_parameters(;
     rng_seed = 6,
     L = 1000,
-    gamma = 1.0,
+    hop_rate = 1.0,
     ensemble_size = 10000,
     rho0_values = LinRange(0, 1, 19),
-    lambda_over_gamma_powers = collect(-3:3),
+    reaction_over_hop_powers = collect(-3:3),
     n_display_ratios = 4,
 )
-    lambda_over_gamma_powers = collect(lambda_over_gamma_powers)
-    lambda_over_gamma_values = collect(10.0 .^ lambda_over_gamma_powers)
+    reaction_over_hop_powers = collect(reaction_over_hop_powers)
+    reaction_over_hop_values = collect(10.0 .^ reaction_over_hop_powers)
 
     return (;
         rng_seed,
         L,
-        gamma,
+        hop_rate,
         ensemble_size,
         rho0_values = collect(rho0_values),
-        lambda_over_gamma_powers,
-        lambda_over_gamma_values,
+        reaction_over_hop_powers,
+        reaction_over_hop_values,
         n_display_ratios,
     )
 end
 
 """
-Obtain an ensemble of escape times for a grid of densities and rate ratios.
+Obtain an ensemble of final times for a grid of densities and rate ratios.
 
 Each grid point gets its own RNG stream so the output is reproducible
 independently of thread scheduling.
 """
 function simulate_rate_grid_parallel(params; verbose = true)
     rho0_values = params.rho0_values
-    lambda_over_gamma_values = params.lambda_over_gamma_values
+    reaction_over_hop_values = params.reaction_over_hop_values
 
-    muT = zeros(length(lambda_over_gamma_values), length(rho0_values))
-    sigmaT = zeros(length(lambda_over_gamma_values), length(rho0_values))
-    lambda_values = params.gamma .* lambda_over_gamma_values
+    mean_times = zeros(length(reaction_over_hop_values), length(rho0_values))
+    stderr_times = zeros(length(reaction_over_hop_values), length(rho0_values))
+    reaction_rate_values = params.hop_rate .* reaction_over_hop_values
 
-    grid_points = collect(CartesianIndices(muT))
+    grid_points = collect(CartesianIndices(mean_times))
     progress_lock = ReentrantLock()
     completed = Ref(0)
 
     Threads.@threads for k in eachindex(grid_points)
         idx = grid_points[k]
         i, j = Tuple(idx)
-        lambda = lambda_values[i]
+        reaction_rate = reaction_rate_values[i]
         rho0 = rho0_values[j]
         cell_seed = params.rng_seed + 1_000_003 * i + 9_176 * j
         rng = MersenneTwister(cell_seed)
@@ -62,16 +62,16 @@ function simulate_rate_grid_parallel(params; verbose = true)
         samples = run_ensemble(
             params.L,
             params.ensemble_size,
-            rho0,
-            params.gamma,
-            lambda;
+            rho0;
+            hop_rate = params.hop_rate,
+            reaction_rate,
             reaction = Reaction(2, 0),
             dynamics = CorrelatedHoppingDynamics(),
             rng,
         )
 
-        muT[i, j] = mean(samples)
-        sigmaT[i, j] = params.ensemble_size == 1 ? 0.0 : std(samples) / sqrt(params.ensemble_size)
+        mean_times[i, j] = mean(samples)
+        stderr_times[i, j] = params.ensemble_size == 1 ? 0.0 : std(samples) / sqrt(params.ensemble_size)
 
         if verbose
             lock(progress_lock)
@@ -82,8 +82,8 @@ function simulate_rate_grid_parallel(params; verbose = true)
                     completed[],
                     "/",
                     length(grid_points),
-                    ": lambda/gamma=",
-                    lambda_over_gamma_values[i],
+                    ": reaction_rate/hop_rate=",
+                    reaction_over_hop_values[i],
                     ", rho0=",
                     rho0,
                 )
@@ -94,22 +94,27 @@ function simulate_rate_grid_parallel(params; verbose = true)
         end
     end
 
-    return (; muT, sigmaT, lambda_values)
+    return (; mean_times, stderr_times, reaction_rate_values)
 end
 
 """
 Obtain the amplitude c1 of the slowest decay mode as a function of density
-rho0 in the lambda -> infinity limit.
+rho0 in the reaction_rate -> infinity limit.
 """
 function c1_curve()
     L = 12
-    gamma = 1.0
-    lambda = 10.0 # Close enough to the lambda -> infinity limit for L = 12.
-    rho0_range = collect(LinRange(0, 1, 100))
-    W, representatives, multiplicities = build_generator(L, gamma, lambda; lump_final = true)
+    hop_rate = 1.0
+    reaction_rate = 10.0 # Close enough to the reaction_rate -> infinity limit for L = 12.
+    rho0_values = collect(LinRange(0, 1, 100))
+    W, representatives, multiplicities = build_pair_annihilation_generator(
+        L;
+        hop_rate,
+        reaction_rate,
+        lump_final = true,
+    )
     _, right_vectors, left_vectors = find_spectral_gap(W; num_eigenvalues = 2)
     c1_values = [
-        calculate_coefficient(
+        CorrelatedHopping.calculate_coefficient(
             rho0,
             1,
             right_vectors,
@@ -117,9 +122,9 @@ function c1_curve()
             representatives,
             multiplicities,
             L,
-        ) for rho0 in rho0_range
+        ) for rho0 in rho0_values
     ]
-    return (; rho0_range, c1_values, L, gamma, lambda)
+    return (; rho0_values, c1_values, L, hop_rate, reaction_rate)
 end
 
 function generate_fig6_data(;

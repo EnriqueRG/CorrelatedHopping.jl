@@ -39,12 +39,12 @@ function plot_fig6(data)
     inset = data.inset
 
     rho0_values = params.rho0_values
-    gamma = params.gamma
-    lambda_over_gamma_powers = params.lambda_over_gamma_powers
-    lambda_over_gamma_values = params.lambda_over_gamma_values
+    hop_rate = params.hop_rate
+    reaction_over_hop_powers = params.reaction_over_hop_powers
+    reaction_over_hop_values = params.reaction_over_hop_values
     n_display_ratios = params.n_display_ratios
-    slow_reaction_indices = firstindex(lambda_over_gamma_values):(firstindex(lambda_over_gamma_values) + n_display_ratios - 1)
-    fast_reaction_indices = (lastindex(lambda_over_gamma_values) - n_display_ratios + 1):lastindex(lambda_over_gamma_values)
+    slow_reaction_indices = firstindex(reaction_over_hop_values):(firstindex(reaction_over_hop_values) + n_display_ratios - 1)
+    fast_reaction_indices = (lastindex(reaction_over_hop_values) - n_display_ratios + 1):lastindex(reaction_over_hop_values)
 
     # Set up left plot: fast reactions
     plt1 = plot(
@@ -66,13 +66,13 @@ function plot_fig6(data)
     seafoam = RGB(0.36, 0.75, 0.59)
     julia_green = RGB(0.22, 0.60, 0.15)
     amber = RGB(0.90, 0.62, 0.00)
-    colors = cgrad([default_blue, seafoam, julia_green, amber, :red])[range(0.0, 1.0, length = length(lambda_over_gamma_values))]
+    colors = cgrad([default_blue, seafoam, julia_green, amber, :red])[range(0.0, 1.0, length = length(reaction_over_hop_values))]
     for i in fast_reaction_indices
         scatter!(
             plt1,
             rho0_values,
-            gamma .* simulation.muT[i, :];
-            yerror = gamma .* simulation.sigmaT[i, :],
+            hop_rate .* simulation.mean_times[i, :];
+            yerror = hop_rate .* simulation.stderr_times[i, :],
             c = colors[i],
             label = nothing,
         )
@@ -81,7 +81,7 @@ function plot_fig6(data)
     # Plot inset
     plot!(
         plt1,
-        inset.rho0_range,
+        inset.rho0_values,
         inset.c1_values;
         inset = (1, bbox(0.465, 0.66, 0.3, 0.2)),
         subplot = 2,
@@ -102,7 +102,7 @@ function plot_fig6(data)
     annotate!(plt1, 0.64, 2, text(L"\rho_0", 9))
 
     # Global legend
-    labels = [L"\lambda/\Gamma = 10^{%$p}" for p in lambda_over_gamma_powers]
+    labels = [L"\lambda/\Gamma = 10^{%$p}" for p in reaction_over_hop_powers]
     for i in reverse(eachindex(labels))
         scatter!(plt1, [NaN], [NaN]; c = colors[i], label = labels[i])
     end
@@ -127,14 +127,14 @@ function plot_fig6(data)
     rho0_mf = LinRange(0.15, 1.0, 200)
     rho_ref = 1 / 2
     for i in reverse(slow_reaction_indices)
-        muT_lambda_units = simulation.lambda_values[i] .* simulation.muT[i, :]
-        sigmaT_lambda_units = simulation.lambda_values[i] .* simulation.sigmaT[i, :]
-        reference_muT = interpolate_at_density(rho0_values, muT_lambda_units, rho_ref)
+        mean_times_reaction_units = simulation.reaction_rate_values[i] .* simulation.mean_times[i, :]
+        stderr_times_reaction_units = simulation.reaction_rate_values[i] .* simulation.stderr_times[i, :]
+        reference_mean_time = interpolate_at_density(rho0_values, mean_times_reaction_units, rho_ref)
 
         plot!(
             plt2,
             rho0_mf,
-            reference_muT .+ 1 / rho_ref .- 1 ./ rho0_mf; # Mean-field curve
+            reference_mean_time .+ 1 / rho_ref .- 1 ./ rho0_mf; # Mean-field curve
             c = colors[i],
             lw = 2,
             ls = :dash,
@@ -143,8 +143,8 @@ function plot_fig6(data)
         scatter!(
             plt2,
             rho0_values,
-            muT_lambda_units;
-            yerror = sigmaT_lambda_units,
+            mean_times_reaction_units;
+            yerror = stderr_times_reaction_units,
             c = colors[i],
             label = nothing,
         )

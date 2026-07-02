@@ -343,16 +343,17 @@ function _sandbox_search(
         for sandbox_sites in sandboxes
             sandbox = zeros(eltype(initial_state), L)
             sandbox[sandbox_sites] .= @view initial_state[sandbox_sites]
+            old_active_sites = copy(active_sites)
 
             new_active_sites = _search_active_sites(
                 sandbox, 
-                active_sites; 
+                copy(active_sites);
                 reaction = reaction, 
                 max_states = max_states
             )
 
             # Check for changes
-            if new_active_sites != active_sites
+            if new_active_sites != old_active_sites
                 active_sites = new_active_sites
                 state_changed = true
                 break
@@ -526,6 +527,7 @@ function _montecarlo_hop_counts(
     simulate!(
         sys,
         should_stop;
+        record = :none,
         stop_on_reaction_only = false,
         rng = rng,
         event_callback = count_hop!,

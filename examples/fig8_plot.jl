@@ -33,9 +33,9 @@ end
 
 function plot_fig8(rows)
     series_definitions = [
-        (name = "below half", label = "ρ = 1/2 − 1/L", marker = :circle),
-        (name = "half filling", label = "ρ = 1/2", marker = :utriangle),
-        (name = "above half", label = "ρ = 1/2 + 1/L", marker = :dtriangle),
+        (name = "below half", label = L"\rho = 1/2 - 1/L", marker = :circle),
+        (name = "half filling", label = L"\rho = 1/2", marker = :utriangle),
+        (name = "above half", label = L"\rho = 1/2 + 1/L", marker = :dtriangle),
     ]
 
     plt = plot(

@@ -20,26 +20,32 @@ function _representative(state::Vector{Int}, lump_final::Bool)
 end
 
 """
-    build_generator(L, gamma, lambda; max_total=L, lump_final=false)
+    build_pair_annihilation_generator(L; hop_rate=1.0, reaction_rate=1.0, max_total=L, lump_final=false)
 
-Construct the symmetry-reduced Markov generator for the finite pairwise model
-on a periodic lattice. Returns `(W, representatives, multiplicities)`, where
-columns of `W` sum to zero and each representative stands for all translations
-and reflections of a state.
+Construct the symmetry-reduced Markov generator for the finite `2A -> 0`
+correlated-hopping model on a periodic lattice. Returns
+`(W, representatives, multiplicities)`, where columns of `W` sum to zero and
+each representative stands for all translations and reflections of a state.
+`hop_rate` sets the `0110 <-> 1001` correlated-hopping rate and
+`reaction_rate` sets the on-site `2A -> 0` annihilation rate.
 
 Set `lump_final=true` to merge all exact binary final states into one absorbing
 representative.
 """
-function build_generator(
-    L::Int,
-    gamma::Float64,
-    lambda::Float64;
+function build_pair_annihilation_generator(
+    L::Int;
+    hop_rate::Real = 1.0,
+    reaction_rate::Real = 1.0,
     max_total::Int = L,
     lump_final::Bool = false,
 )
     L >= 4 || throw(ArgumentError("Pairwise dynamics require L >= 4."))
+    hop_rate >= 0 || throw(ArgumentError("hop_rate must be nonnegative."))
+    reaction_rate >= 0 || throw(ArgumentError("reaction_rate must be nonnegative."))
     lump_final && L <= 7 &&
         throw(ArgumentError("Exact binary final-state patterns assume L > 7."))
+    hop_rate_float = Float64(hop_rate)
+    reaction_rate_float = Float64(reaction_rate)
 
     representatives = Vector{Vector{Int}}()
     multiplicities = Int[]
@@ -94,7 +100,7 @@ function build_generator(
             if state[i] >= 2
                 new_state = copy(state)
                 new_state[i] -= 2
-                rate = gamma * state[i] * (state[i] - 1) / 2.0
+                rate = reaction_rate_float * state[i] * (state[i] - 1) / 2.0
                 add_transition!(source_idx, new_state, rate)
             end
 
@@ -109,7 +115,7 @@ function build_generator(
                 new_state[i2] -= 1
                 new_state[i3] -= 1
                 new_state[i4] += 1
-                add_transition!(source_idx, new_state, lambda * state[i2] * state[i3])
+                add_transition!(source_idx, new_state, hop_rate_float * state[i2] * state[i3])
             end
 
             if state[i1] >= 1 && state[i4] >= 1
@@ -118,7 +124,7 @@ function build_generator(
                 new_state[i2] += 1
                 new_state[i3] += 1
                 new_state[i4] -= 1
-                add_transition!(source_idx, new_state, lambda * state[i1] * state[i4])
+                add_transition!(source_idx, new_state, hop_rate_float * state[i1] * state[i4])
             end
         end
     end
@@ -198,20 +204,27 @@ function calculate_coefficient(
 end
 
 """
-    full_gamma_coefficients(L, gamma, lambda, rho0; nmax=2)
+    full_decay_coefficients(L, rho0; hop_rate=1.0, reaction_rate=1.0, nmax=2)
 
-Build a lumped generator and return the first `nmax` decay rates and overlap
-coefficients for the Bernoulli initial density `rho0`.
+Build the lumped `2A -> 0` correlated-hopping generator and return the first
+`nmax` decay rates and overlap coefficients for the Bernoulli initial density
+`rho0`.
 """
-function full_gamma_coefficients(L, gamma, lambda, rho0; nmax = 2)
-    W, representatives, multiplicities = build_generator(
-        L,
-        Float64(gamma),
-        Float64(lambda);
+function full_decay_coefficients(
+    L,
+    rho0;
+    hop_rate::Real = 1.0,
+    reaction_rate::Real = 1.0,
+    nmax = 2,
+)
+    W, representatives, multiplicities = build_pair_annihilation_generator(
+        L;
+        hop_rate,
+        reaction_rate,
         lump_final = true,
     )
     vals, right_vectors, left_vectors = find_spectral_gap(W; num_eigenvalues = nmax + 1)
-    gammas = -real.(vals[2:end])
+    decay_rates = -real.(vals[2:end])
     coefficients = [
         calculate_coefficient(
             rho0,
@@ -223,5 +236,5 @@ function full_gamma_coefficients(L, gamma, lambda, rho0; nmax = 2)
             L,
         ) for k in 1:nmax
     ]
-    return gammas, coefficients
+    return decay_rates, coefficients
 end

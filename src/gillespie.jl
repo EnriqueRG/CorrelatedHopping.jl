@@ -2,12 +2,30 @@
 
 abstract type AbstractReactionModel end
 
+function _validate_reaction_parameters(n, m; instantaneous::Bool)
+    n isa Integer || throw(ArgumentError("n must be an integer."))
+    m isa Integer || throw(ArgumentError("m must be an integer."))
+    n >= 1 || throw(ArgumentError("n must be at least 1."))
+    m >= 0 || throw(ArgumentError("m must be nonnegative."))
+    if instantaneous && m >= n
+        throw(ArgumentError("instantaneous reactions require m < n."))
+    end
+    return nothing
+end
+
 """
     Reaction(n, m)
 
-Finite-rate reaction `nA -> mA`.
+Finite-rate reaction `nA -> mA`. Finite reactions require `n >= 1` and
+`m >= 0`; they may either remove particles (`m < n`) or create particles
+(`m > n`).
 """
-struct Reaction{N,M} <: AbstractReactionModel end
+struct Reaction{N,M} <: AbstractReactionModel
+    function Reaction{N,M}() where {N,M}
+        _validate_reaction_parameters(N, M; instantaneous = false)
+        return new{N,M}()
+    end
+end
 
 # Convenience constructor that stores `n` and `m` as type parameters.
 Reaction(n::Int, m::Int) = Reaction{n,m}()
@@ -16,8 +34,15 @@ Reaction(n::Int, m::Int) = Reaction{n,m}()
     InstantaneousReaction(n, m)
 
 Infinite-rate reaction `nA -> mA`, enforced immediately after a dynamics event.
+Instantaneous reactions require `n >= 1`, `m >= 0`, and `m < n` so that
+reaction enforcement strictly reduces local occupation.
 """
-struct InstantaneousReaction{N,M} <: AbstractReactionModel end
+struct InstantaneousReaction{N,M} <: AbstractReactionModel
+    function InstantaneousReaction{N,M}() where {N,M}
+        _validate_reaction_parameters(N, M; instantaneous = true)
+        return new{N,M}()
+    end
+end
 
 # Convenience constructor that stores `n` and `m` as type parameters.
 InstantaneousReaction(n::Int, m::Int) = InstantaneousReaction{n,m}()
@@ -313,16 +338,22 @@ end
     simulate!(
         sys,
         should_stop;
-        full_history = false,
+        record = :particle_changes,
         stop_on_reaction_only = true,
         rng = Random.default_rng(),
         event_callback = nothing,
     )
 
 Run a Gillespie simulation in place until `should_stop(sys, t)` is true or no
-events remain. Returns `(times, history)`. By default, `history` is the total
-particle number recorded at particle-changing events; with `full_history=true`,
-it is a matrix of site occupations after every event.
+events remain. Returns a named tuple with `final_time`, `recorded_times`,
+`history`, and `final_state`.
+
+The `record` keyword controls stored history:
+
+- `:particle_changes`: record total particle number initially and after
+  particle-changing events.
+- `:all`: record the full lattice state initially and after every event.
+- `:none`: do not store trajectory history.
 
 When `stop_on_reaction_only=true`, the stopping rule is checked initially and
 after particle-changing events. Set it to `false` for stopping rules that depend
@@ -336,14 +367,23 @@ applied and local rates have been refreshed:
 function simulate!(
     sys::DirectLatticeSystem,
     should_stop::Function;
-    full_history::Bool = false,
+    record::Symbol = :particle_changes,
     stop_on_reaction_only::Bool = true,
     rng::AbstractRNG = Random.default_rng(),
     event_callback::Union{Nothing,Function} = nothing,
 )
+    record in (:particle_changes, :all, :none) ||
+        throw(ArgumentError("record must be :particle_changes, :all, or :none."))
+
     t = 0.0
-    times = Float64[0.0]
-    history = full_history ? Vector{Int}[copy(sys.occupations)] : Int[sum(sys.occupations)]
+    recorded_times = record === :none ? Float64[] : Float64[0.0]
+    history = if record === :all
+        Vector{Int}[copy(sys.occupations)]
+    elseif record === :particle_changes
+        Int[sum(sys.occupations)]
+    else
+        nothing
+    end
     check_stop = true
 
     while true
@@ -391,18 +431,24 @@ function simulate!(
             event_callback(sys, event_kind, site_idx, t, particle_change)
         end
 
-        if full_history
-            push!(times, t)
+        if record === :all
+            push!(recorded_times, t)
             push!(history, copy(sys.occupations))
-        elseif particle_change != 0
-            push!(times, t)
+        elseif record === :particle_changes && particle_change != 0
+            push!(recorded_times, t)
             push!(history, history[end] + particle_change)
         end
 
         check_stop = !stop_on_reaction_only || particle_change != 0
     end
 
-    return times, full_history ? stack(history, dims = 1) : history
+    recorded_history = record === :all ? stack(history, dims = 1) : history
+    return (;
+        final_time = t,
+        recorded_times,
+        history = recorded_history,
+        final_state = copy(sys.occupations),
+    )
 end
 
 # Fragment and final-state analysis: binary patterns and ensemble sampling
@@ -460,11 +506,12 @@ end
 # Ensemble sampling
 
 """
-    run_ensemble(L, n_ensemble, rho0, gamma, lambda; reaction, dynamics, condition_even=false, stop=nothing, rng=Random.default_rng())
+    run_ensemble(L, n_ensemble, rho0; hop_rate=1.0, reaction_rate=1.0, reaction, dynamics, condition_even=false, stop=nothing, rng=Random.default_rng())
 
 Run `n_ensemble` independent simulations for a single system size `L`.
 Initial states are Bernoulli binary states with density `rho0`. Returns a
-vector of final times.
+vector of final times. `hop_rate` sets the dynamics rate and `reaction_rate`
+sets the local reaction rate.
 
 By default, simulations stop at `is_final_binary`. Pass `stop=(sys, t) -> ...`
 to use another stopping rule, such as ordinary diffusion stopping when fewer
@@ -473,9 +520,9 @@ than two particles remain.
 function run_ensemble(
     L::Integer,
     n_ensemble::Int,
-    rho0,
-    gamma,
-    lambda;
+    rho0;
+    hop_rate::Real = 1.0,
+    reaction_rate::Real = 1.0,
     reaction::AbstractReactionModel = Reaction(2, 0),
     dynamics::Union{AbstractDynamicsModel,Symbol} = CorrelatedHoppingDynamics(),
     condition_even::Bool = false,
@@ -485,8 +532,8 @@ function run_ensemble(
 )
     n_ensemble > 0 || throw(ArgumentError("n_ensemble must be positive."))
     0 <= rho0 <= 1 || throw(ArgumentError("rho0 must be between 0 and 1."))
-    gamma >= 0 || throw(ArgumentError("gamma must be nonnegative."))
-    lambda >= 0 || throw(ArgumentError("lambda must be nonnegative."))
+    hop_rate >= 0 || throw(ArgumentError("hop_rate must be nonnegative."))
+    reaction_rate >= 0 || throw(ArgumentError("reaction_rate must be nonnegative."))
     stop_rule = isnothing(stop) ? ((s, _t) -> is_final_binary(s)) : stop
 
     L > 0 || throw(ArgumentError("L must be positive."))
@@ -501,18 +548,19 @@ function run_ensemble(
         sys = initialize_system(
             Int(L),
             initial_state,
-            Float64(gamma),
-            Float64(lambda);
+            Float64(hop_rate),
+            Float64(reaction_rate);
             reaction,
             dynamics,
         )
-        t, _ = simulate!(
+        result = simulate!(
             sys,
             stop_rule;
+            record = :none,
             stop_on_reaction_only,
             rng,
         )
-        times[j] = t[end]
+        times[j] = result.final_time
     end
 
     return times

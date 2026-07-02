@@ -1,35 +1,24 @@
 module CorrelatedHopping
 
 using Arpack
-using LinearAlgebra
 using Printf
 using Random
 using SparseArrays
-using Statistics
 
 export 
-    AbstractReactionModel,
     Reaction,
     InstantaneousReaction,
-    AbstractDynamicsModel,
     CorrelatedHoppingDynamics,
     StandardDiffusion,
     DirectLatticeSystem,
     initialize_system,
-    update_local_rates!,
     simulate!,
     is_final_binary,
-    build_generator,
+    build_pair_annihilation_generator,
     find_spectral_gap,
-    full_gamma_coefficients,
-    calculate_coefficient,
+    full_decay_coefficients,
     run_ensemble,
-    active_sites,
-    symmetry_sector_counts,
-    largest_symmetry_sector,
-    generate_symmetry_sector_states,
-    analyze_krylov_sectors!,
-    largest_krylov_sector
+    active_sites
 
 include("gillespie.jl")
 include("spectral.jl")

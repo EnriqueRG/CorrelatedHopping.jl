@@ -5,22 +5,22 @@ using Serialization
 
 ###########################################################
 # Fig. 4 data generation                                  #
-# Survival-time histograms for increasing system sizes.   #
+# Final-time histograms for increasing system sizes.      #
 ###########################################################
 
 function fig4_parameters(;
     rng_seed = 4,
     rho0 = 0.5,
-    lambda = 1.0,
-    gamma = 1.0,
-    ensemble_size = 10_000, # Reduce this parameter for a quick test run
+    hop_rate = 1.0,
+    reaction_rate = 1.0,
+    ensemble_size = 100,
     L_values = [2^4, 2^8, 2^12],
 )
     return (;
         rng_seed,
         rho0,
-        lambda,
-        gamma,
+        hop_rate,
+        reaction_rate,
         ensemble_size,
         L_values = collect(L_values),
     )
@@ -34,9 +34,9 @@ end
 function run_ensemble_parallel(
     L,
     ensemble_size,
-    rho0,
-    gamma,
-    lambda;
+    rho0;
+    hop_rate,
+    reaction_rate,
     rng_seed,
     reaction = Reaction(2, 0),
     dynamics = CorrelatedHoppingDynamics(),
@@ -52,9 +52,9 @@ function run_ensemble_parallel(
         chunks[chunk_index] = run_ensemble(
             L,
             sizes[chunk_index],
-            rho0,
-            gamma,
-            lambda;
+            rho0;
+            hop_rate,
+            reaction_rate,
             reaction,
             dynamics,
             condition_even,
@@ -78,18 +78,18 @@ function generate_fig4_data(; verbose = true, kwargs...)
 
     results = [
         begin
-            survival_times = run_ensemble_parallel(
+            final_times = run_ensemble_parallel(
                 L,
                 params.ensemble_size,
-                params.rho0,
-                params.gamma,
-                params.lambda;
+                params.rho0;
+                hop_rate = params.hop_rate,
+                reaction_rate = params.reaction_rate,
                 rng_seed = params.rng_seed + 100_003 * i,
                 reaction = Reaction(2, 0),
                 dynamics = CorrelatedHoppingDynamics(),
             )
             verbose && println("Completed L=", L)
-            (; L, survival_times)
+            (; L, final_times)
         end
         for (i, L) in enumerate(params.L_values)
     ]

@@ -34,14 +34,14 @@ function plot_fig7(data)
     ]
     for (i, result) in enumerate(data.results)
         L = result.L
-        mu = L^2 / (2 * pi^2 * params.gamma)
+        mu = L^2 / (2 * pi^2 * params.hop_rate)
         sigma = mu
-        t_ens = (result.survival_times .- mu) ./ sigma
+        standardized_times = (result.final_times .- mu) ./ sigma
 
         clr = green_colors[i]
         stephist!(
             plt,
-            t_ens;
+            standardized_times;
             bins = 100,
             normalize = :pdf,
             lw = 2,
