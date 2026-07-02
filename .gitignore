@@ -2,6 +2,7 @@ Manifest.toml
 examples/Manifest.toml
 examples/output/
 personal_examples/
+cluster/
 legacy/
 .DS_Store
 *.ji
